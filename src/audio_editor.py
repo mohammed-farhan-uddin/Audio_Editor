@@ -42,7 +42,14 @@ class AudioEditor:
         data=self.data.copy()
         data[:n]=data[:n] * ramp[:,None]
         return AudioEditor(data,self.sample_rate)
-    
+
+    def fade_out(self,duration_sec):
+        n = int(duration_sec * self.sample_rate)
+        ramp=np.linspace(1,0,n)
+        data=self.data.copy()
+        data[-n:]=data[-n:] * ramp[:,None]
+        return AudioEditor(data,self.sample_rate)
+
         
 
 
@@ -54,10 +61,17 @@ class AudioEditor:
 # joined = AudioEditor.join([clip1, clip2])
 # print(joined.data.shape)
 
+# fade_in
+
+# audio = AudioEditor.load("samples/input.wav")
+# faded = audio.fade_in(2)
+# print(faded.data[0])        # প্রথম sample
+# print(audio.data[0])        # আগের (fade করার আগের) প্রথম sample
+
 audio = AudioEditor.load("samples/input.wav")
-faded = audio.fade_in(2)
-print(faded.data[0])        # প্রথম sample
-print(audio.data[0])        # আগের (fade করার আগের) প্রথম sample
+faded = audio.fade_out(2)
+print(faded.data[-1])        
+print(audio.data[-1]) 
 
 
 
