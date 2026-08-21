@@ -15,15 +15,26 @@ class AudioEditor:
         sample_rate, data = wavfile.read(path)
         data = data.astype(np.float64) / np.iinfo(data.dtype).max
         return cls(data,sample_rate)
+
+    
     def trim(self,start_sec,end_sec):
         start_index = start_sec * self.sample_rate
         end_index = end_sec * self.sample_rate
         return AudioEditor(self.data[start_index:end_index],self.sample_rate)
+
+    
     def reverse(self):
         return AudioEditor(self.data[::-1],self.sample_rate)
+
+    
     def scale(self,factor):
         data=self.data*factor
         return AudioEditor(data,self.sample_rate)
+
+    @staticmethod
+    def join(clips):
+        combined_data = np.concatenate([clip.data for clip in clips])
+        return AudioEditor(combined_data, clips[0].sample_rate)
     
         
 
@@ -31,9 +42,10 @@ class AudioEditor:
 
 
 audio = AudioEditor.load("samples/input.wav")
-scaled = audio.scale(0.5)
-print(scaled.data.max())
-print(audio.data.max())
+clip1 = audio.trim(0, 2)
+clip2 = audio.trim(2, 4)
+joined = AudioEditor.join([clip1, clip2])
+print(joined.data.shape)
 
 
 
