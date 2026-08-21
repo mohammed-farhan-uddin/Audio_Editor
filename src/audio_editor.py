@@ -19,6 +19,9 @@ class AudioEditor:
         start_index = start_sec * self.sample_rate
         end_index = end_sec * self.sample_rate
         return AudioEditor(self.data[start_index:end_index],self.sample_rate)
+    def reverse(self):
+        return AudioEditor(self.data[::-1],self.sample_rate)
+    
         
 
 
@@ -26,8 +29,8 @@ class AudioEditor:
 
 audio = AudioEditor.load("samples/input.wav")
 trimmed = audio.trim(2, 5)
-print(trimmed.data.shape)
-print(trimmed.sample_rate)
+reversed_clip = trimmed.reverse()
+print(reversed_clip.data.shape)
 
 
 
