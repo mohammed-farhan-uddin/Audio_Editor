@@ -50,7 +50,18 @@ class AudioEditor:
         data[-n:]=data[-n:] * ramp[:,None]
         return AudioEditor(data,self.sample_rate)
 
-        
+    def save(self,path):
+       int_data=(self.data * 32767).astype(np.int16)
+       wavfile.write(path, self.sample_rate, int_data)
+
+    def plot_waveform(self):
+      duration = len(self.data) / self.sample_rate
+      time = np.linspace(0, duration, len(self.data))
+      plt.plot(time, self.data)
+      plt.xlabel("Time (s)")
+      plt.ylabel("Amplitude")
+      plt.title("Waveform")
+      plt.show()
 
 
 # join
@@ -68,10 +79,19 @@ class AudioEditor:
 # print(faded.data[0])        # প্রথম sample
 # print(audio.data[0])        # আগের (fade করার আগের) প্রথম sample
 
+# audio = AudioEditor.load("samples/input.wav")
+# faded = audio.fade_out(2)
+# print(faded.data[-1])        
+# print(audio.data[-1]) 
+
+##save
+# audio = AudioEditor.load("samples/input.wav")
+# reversed_clip = audio.reverse()
+# scale_clip = audio.fade_in(2)
+# scale_clip=scale_clip.fade_out(2)
+# scale_clip.save("output_test.wav")
 audio = AudioEditor.load("samples/input.wav")
-faded = audio.fade_out(2)
-print(faded.data[-1])        
-print(audio.data[-1]) 
+audio.plot_waveform()
 
 
 
