@@ -2,10 +2,6 @@ import matplotlib.pyplot as plt
 import numpy as np
 from scipy.io import wavfile
 
-
-
-
-
 class AudioEditor:
     def __init__(self,data,sample_rate):
         self.data=data
@@ -101,11 +97,12 @@ class AudioEditor:
     def plot_waveform(self):
       duration = len(self.data) / self.sample_rate
       time = np.linspace(0, duration, len(self.data))
-      plt.plot(time, self.data)
-      plt.xlabel("Time (s)")
-      plt.ylabel("Amplitude")
-      plt.title("Waveform")
-      plt.show()
+      fig, ax = plt.subplots()
+      ax.plot(time, self.data)
+      ax.set_xlabel("Time (s)")
+      ax.set_ylabel("Amplitude")
+      ax.set_title("Waveform")
+      return fig
 
 
 # join
