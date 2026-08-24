@@ -1,6 +1,7 @@
 import streamlit as st
 import matplotlib.pyplot as plt
 from audio_editor import AudioEditor
+from effects import echo, smooth
 
 st.title("Audio Editor")
 
@@ -53,3 +54,30 @@ elif operation == "Change Speed":
 elif operation == "Trim Silence":
     threshold = st.number_input("Silence threshold", min_value=0.0, value=0.01)
 
+if st.button("Apply"):
+    if operation == "Trim":
+        result = audio.trim(start, end)
+    elif operation == "Reverse":
+        result = audio.reverse()
+    elif operation == "Scale":
+        result = audio.scale(factor)
+    elif operation == "Fade In":
+        result = audio.fade_in(duration)
+    elif operation == "Fade Out":
+        result = audio.fade_out(duration)
+    elif operation == "Echo":
+        result = echo(audio, delay, decay)
+    elif operation == "Smooth":
+        result = smooth(audio, kernel_size)
+    elif operation == "To Mono":
+        result = audio.to_mono()
+    elif operation == "Normalize":
+        result = audio.normalize()
+    elif operation == "Change Speed":
+        result = audio.change_speed(speed_factor)
+    elif operation == "Trim Silence":
+        result = audio.trim_silence(threshold)
+
+    st.write("Result:")
+    fig = result.plot_waveform()
+    st.pyplot(fig)

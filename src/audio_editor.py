@@ -14,8 +14,8 @@ class AudioEditor:
 
     
     def trim(self,start_sec,end_sec):
-        start_index = start_sec * self.sample_rate
-        end_index = end_sec * self.sample_rate
+        start_index = int(start_sec * self.sample_rate)
+        end_index = int(end_sec * self.sample_rate)
         return AudioEditor(self.data[start_index:end_index],self.sample_rate)
 
     
