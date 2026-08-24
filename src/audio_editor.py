@@ -55,6 +55,10 @@ class AudioEditor:
        int_data=(self.data * 32767).astype(np.int16)
        wavfile.write(path, self.sample_rate, int_data)
 
+    def to_mono(self):
+      mono_data = self.data.mean(axis=1)
+      return AudioEditor(mono_data, self.sample_rate)   
+
     def plot_waveform(self):
       duration = len(self.data) / self.sample_rate
       time = np.linspace(0, duration, len(self.data))
@@ -91,8 +95,12 @@ class AudioEditor:
 # scale_clip = audio.fade_in(2)
 # scale_clip=scale_clip.fade_out(2)
 # scale_clip.save("output_test.wav")
+# audio = AudioEditor.load("samples/input.wav")
+# audio.plot_waveform()
 audio = AudioEditor.load("samples/input.wav")
-audio.plot_waveform()
+mono = audio.to_mono()
+print(audio.data.shape)
+print(mono.data.shape)
 
 
 
