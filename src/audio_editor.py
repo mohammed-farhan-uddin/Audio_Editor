@@ -57,7 +57,12 @@ class AudioEditor:
 
     def to_mono(self):
       mono_data = self.data.mean(axis=1)
-      return AudioEditor(mono_data, self.sample_rate)   
+      return AudioEditor(mono_data, self.sample_rate)
+
+    def normalize(self):
+      max_val = np.max(np.abs(self.data))
+      normalized_data = self.data / max_val
+      return AudioEditor(normalized_data, self.sample_rate)      
 
     def plot_waveform(self):
       duration = len(self.data) / self.sample_rate
@@ -97,10 +102,15 @@ class AudioEditor:
 # scale_clip.save("output_test.wav")
 # audio = AudioEditor.load("samples/input.wav")
 # audio.plot_waveform()
+# audio = AudioEditor.load("samples/input.wav")
+# mono = audio.to_mono()
+# print(audio.data.shape)
+# print(mono.data.shape)
 audio = AudioEditor.load("samples/input.wav")
-mono = audio.to_mono()
-print(audio.data.shape)
-print(mono.data.shape)
+scaled_down = audio.scale(0.3)     # আগে ভলিউম কমাও (একটা quiet audio simulate করার জন্য)
+normalized = scaled_down.normalize()
+print(scaled_down.data.max())
+print(normalized.data.max())
 
 
 
