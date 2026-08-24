@@ -62,7 +62,12 @@ class AudioEditor:
     def normalize(self):
       max_val = np.max(np.abs(self.data))
       normalized_data = self.data / max_val
-      return AudioEditor(normalized_data, self.sample_rate)      
+      return AudioEditor(normalized_data, self.sample_rate)
+
+    def mix(self, other):
+      min_length = min(len(self.data), len(other.data))
+      mixed_data = self.data[:min_length] + other.data[:min_length]
+      return AudioEditor(mixed_data, self.sample_rate)      
 
     def plot_waveform(self):
       duration = len(self.data) / self.sample_rate
@@ -106,11 +111,16 @@ class AudioEditor:
 # mono = audio.to_mono()
 # print(audio.data.shape)
 # print(mono.data.shape)
+# audio = AudioEditor.load("samples/input.wav")
+# scaled_down = audio.scale(0.3)     # আগে ভলিউম কমাও (একটা quiet audio simulate করার জন্য)
+# normalized = scaled_down.normalize()
+# print(scaled_down.data.max())
+# print(normalized.data.max())
 audio = AudioEditor.load("samples/input.wav")
-scaled_down = audio.scale(0.3)     # আগে ভলিউম কমাও (একটা quiet audio simulate করার জন্য)
-normalized = scaled_down.normalize()
-print(scaled_down.data.max())
-print(normalized.data.max())
+clip1 = audio.trim(0, 5)
+clip2 = audio.trim(5, 10)
+mixed = clip1.mix(clip2)
+mixed.save("mix_test.wav")
 
 
 
