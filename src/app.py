@@ -11,3 +11,45 @@ if uploaded_file is not None:
     st.write("Sample rate:", audio.sample_rate)
     fig = audio.plot_waveform()
     st.pyplot(fig)
+
+operation = st.selectbox("Choose an operation", [
+    "Trim", "Reverse", "Scale", "Fade In", "Fade Out", 
+    "Echo", "Smooth", "To Mono", "Normalize", "Change Speed", "Trim Silence"
+])
+st.write("You selected:", operation)    
+
+if operation == "Trim":
+    start = st.number_input("Start (seconds)", min_value=0.0, value=0.0)
+    end = st.number_input("End (seconds)", min_value=0.0, value=1.0)
+
+elif operation == "Reverse":
+    pass
+
+elif operation == "Scale":
+    factor = st.number_input("Scale factor", min_value=0.0, value=1.0)
+
+elif operation == "Fade In":
+    duration = st.number_input("Fade duration (seconds)", min_value=0.0, value=0.5)
+
+elif operation == "Fade Out":
+    duration = st.number_input("Fade duration (seconds)", min_value=0.0, value=0.5)
+
+elif operation == "Echo":
+    delay = st.number_input("Delay (seconds)", min_value=0.0, value=0.3)
+    decay = st.number_input("Decay", min_value=0.0, max_value=1.0, value=0.5)
+
+elif operation == "Smooth":
+    kernel_size = st.number_input("Kernel size", min_value=1, value=21, step=1)
+
+elif operation == "To Mono":
+    pass
+
+elif operation == "Normalize":
+    pass
+
+elif operation == "Change Speed":
+    speed_factor = st.number_input("Speed factor", min_value=0.1, value=1.0)
+
+elif operation == "Trim Silence":
+    threshold = st.number_input("Silence threshold", min_value=0.0, value=0.01)
+
