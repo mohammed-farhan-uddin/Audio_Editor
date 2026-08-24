@@ -51,6 +51,7 @@ class AudioEditor:
         return AudioEditor(data,self.sample_rate)
 
     def save(self,path):
+       clipped_data = np.clip(self.data, -1.0, 1.0)
        int_data=(self.data * 32767).astype(np.int16)
        wavfile.write(path, self.sample_rate, int_data)
 

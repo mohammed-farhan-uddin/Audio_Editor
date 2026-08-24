@@ -25,6 +25,11 @@ def echo(audio, delay_sec, decay):
     result_data = convolve_stereo(audio.data, kernel)
     return AudioEditor(result_data, audio.sample_rate)
 
+def smooth(audio, kernel_size):
+    kernel = np.ones(kernel_size) / kernel_size
+    result_data = convolve_stereo(audio.data, kernel)
+    return AudioEditor(result_data, audio.sample_rate)
+
 x = np.array([1, 2, 3])
 h = np.array([1, 0, 1])
 result = my_convolve(x, h)
