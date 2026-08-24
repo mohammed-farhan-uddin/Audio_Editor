@@ -67,7 +67,23 @@ class AudioEditor:
     def mix(self, other):
       min_length = min(len(self.data), len(other.data))
       mixed_data = self.data[:min_length] + other.data[:min_length]
-      return AudioEditor(mixed_data, self.sample_rate)      
+      return AudioEditor(mixed_data, self.sample_rate)
+
+
+    def change_speed(self, speed_factor):
+      old_length = len(self.data)
+      new_length = int(old_length / speed_factor)
+    
+      old_indices = np.arange(old_length)
+      new_indices = np.linspace(0, old_length - 1, new_length)
+    
+      left = np.interp(new_indices, old_indices, self.data[:, 0])
+      right = np.interp(new_indices, old_indices, self.data[:, 1])
+      new_data = np.stack([left, right], axis=1)
+    
+      return AudioEditor(new_data, self.sample_rate)      
+
+    
 
     def plot_waveform(self):
       duration = len(self.data) / self.sample_rate
@@ -116,12 +132,16 @@ class AudioEditor:
 # normalized = scaled_down.normalize()
 # print(scaled_down.data.max())
 # print(normalized.data.max())
+# audio = AudioEditor.load("samples/input.wav")
+# clip1 = audio.trim(0, 5)
+# clip2 = audio.trim(5, 10)
+# mixed = clip1.mix(clip2)
+# mixed.save("mix_test.wav")
 audio = AudioEditor.load("samples/input.wav")
-clip1 = audio.trim(0, 5)
-clip2 = audio.trim(5, 10)
-mixed = clip1.mix(clip2)
-mixed.save("mix_test.wav")
-
+fast = audio.change_speed(1.5)
+fast.save("fast_test.wav")
+slow = audio.change_speed(0.7)
+slow.save("slow_test.wav")
 
 
 
