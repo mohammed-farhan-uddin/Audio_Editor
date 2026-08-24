@@ -81,7 +81,20 @@ class AudioEditor:
       right = np.interp(new_indices, old_indices, self.data[:, 1])
       new_data = np.stack([left, right], axis=1)
     
-      return AudioEditor(new_data, self.sample_rate)      
+      return AudioEditor(new_data, self.sample_rate)   
+
+    def trim_silence(self, threshold=0.01):
+      amplitude = np.abs(self.data).max(axis=1)   # প্রতিটা sample এর loudness (stereo থেকে একটা সংখ্যা)
+      loud_indices = np.where(amplitude > threshold)[0]   # কোন কোন index এ শব্দ আছে
+
+      if len(loud_indices) == 0:
+        return AudioEditor(self.data, self.sample_rate)   # পুরোটাই silence হলে অপরিবর্তিত রাখো
+
+      start = loud_indices[0]
+      end = loud_indices[-1]
+      trimmed_data = self.data[start:end+1]
+
+      return AudioEditor(trimmed_data, self.sample_rate)   
 
     
 
@@ -137,11 +150,15 @@ class AudioEditor:
 # clip2 = audio.trim(5, 10)
 # mixed = clip1.mix(clip2)
 # mixed.save("mix_test.wav")
+# audio = AudioEditor.load("samples/input.wav")
+# fast = audio.change_speed(1.5)
+# fast.save("fast_test.wav")
+# slow = audio.change_speed(0.7)
+# slow.save("slow_test.wav")
 audio = AudioEditor.load("samples/input.wav")
-fast = audio.change_speed(1.5)
-fast.save("fast_test.wav")
-slow = audio.change_speed(0.7)
-slow.save("slow_test.wav")
-
+trimmed = audio.trim_silence()
+print(audio.data.shape)
+print(trimmed.data.shape)
+trimmed.save("silence_trimmed_test.wav")
 
 
