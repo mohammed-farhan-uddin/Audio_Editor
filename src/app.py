@@ -1,5 +1,6 @@
 import streamlit as st
 import matplotlib.pyplot as plt
+import io
 from audio_editor import AudioEditor
 from effects import echo, smooth
 
@@ -12,6 +13,7 @@ if uploaded_file is not None:
     st.write("Sample rate:", audio.sample_rate)
     fig = audio.plot_waveform()
     st.pyplot(fig)
+
 
 operation = st.selectbox("Choose an operation", [
     "Trim", "Reverse", "Scale", "Fade In", "Fade Out", 
@@ -81,3 +83,7 @@ if st.button("Apply"):
     st.write("Result:")
     fig = result.plot_waveform()
     st.pyplot(fig)
+
+    buffer = io.BytesIO()                                          # ← এই লাইনটা এখানে
+    result.save(buffer)
+    st.download_button("Download result", buffer, file_name="edited_audio.wav")
