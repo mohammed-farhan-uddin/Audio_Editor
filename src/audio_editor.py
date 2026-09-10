@@ -88,10 +88,50 @@ class AudioEditor:
         data[-n:]=data[-n:] * ramp[:,None]
         return AudioEditor(data,self.sample_rate)
 
-    def save(self,path):
+    def save(self, path, format="wav"):
+    
+    #path: file path or file-like object (e.g. io.BytesIO for Streamlit)
+    #format: "wav" or "mp3"
+    
        clipped_data = np.clip(self.data, -1.0, 1.0)
-       int_data=(clipped_data * 32767).astype(np.int16)
-       wavfile.write(path, self.sample_rate, int_data)
+       int_data = (clipped_data * 32767).astype(np.int16)
+
+       if format == "wav":
+        wavfile.write(path, self.sample_rate, int_data)
+
+       elif format == "mp3":
+        self._save_as_mp3(int_data, path)
+
+       else:
+        raise ValueError(f"Unsupported format: {format}")
+
+    def _save_as_mp3(self, int_data, path):
+    # int_data shape: (n_samples, n_channels) or (n_samples,) if mono
+       channels = int_data.shape[1] if int_data.ndim > 1 else 1
+       raw_bytes = int_data.tobytes()
+
+       cmd = [
+        "ffmpeg", "-y",
+        "-f", "s16le",
+        "-ar", str(self.sample_rate),
+        "-ac", str(channels),
+        "-i", "pipe:0",
+        "-f", "mp3",
+        "-loglevel", "error",
+        "pipe:1"
+    ]
+       result = subprocess.run(cmd, input=raw_bytes, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+       if result.returncode != 0:
+        raise RuntimeError(f"ffmpeg failed: {result.stderr.decode()}")
+
+       mp3_bytes = result.stdout
+
+    # Write to a real path or a file-like object (e.g. io.BytesIO)
+       if isinstance(path, str):
+        with open(path, "wb") as f:
+            f.write(mp3_bytes)
+       else:
+        path.write(mp3_bytes)
 
     def to_mono(self):
       mono_data = self.data.mean(axis=1)
