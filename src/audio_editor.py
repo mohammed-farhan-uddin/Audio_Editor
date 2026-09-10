@@ -1,16 +1,58 @@
+import subprocess
 import matplotlib.pyplot as plt
 import numpy as np
 from scipy.io import wavfile
+from pydub import AudioSegment
 
 class AudioEditor:
     def __init__(self,data,sample_rate):
         self.data=data
         self.sample_rate=sample_rate
     @classmethod
-    def load(cls,path):
-        sample_rate, data = wavfile.read(path)
-        data = data.astype(np.float64) / np.iinfo(data.dtype).max
-        return cls(data,sample_rate)
+    def load(cls, file, filename=None):
+        """
+        file: either a path string, or a file-like object (e.g. Streamlit's UploadedFile)
+        filename: needed if `file` is a file-like object without a .name attribute
+        """
+        # Figure out the extension
+        name = filename or getattr(file, "name", None) or (file if isinstance(file, str) else "")
+        is_wav = str(name).lower().endswith(".wav")
+
+        if is_wav:
+            sample_rate, data = wavfile.read(file)
+            data = data.astype(np.float64) / np.iinfo(data.dtype).max
+            return cls(data, sample_rate)
+        else:
+            return cls._load_via_ffmpeg(file)
+
+    @classmethod
+    def _load_via_ffmpeg(cls, file, sample_rate=44100, channels=2):
+        # Get raw bytes whether `file` is a path or a file-like object
+        if isinstance(file, str):
+            with open(file, "rb") as f:
+                input_bytes = f.read()
+        else:
+            file.seek(0)
+            input_bytes = file.read()
+
+        cmd = [
+            "ffmpeg", "-i", "pipe:0",
+            "-f", "s16le",
+            "-acodec", "pcm_s16le",
+            "-ar", str(sample_rate),
+            "-ac", str(channels),
+            "-loglevel", "error",
+            "pipe:1"
+        ]
+        result = subprocess.run(cmd, input=input_bytes, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        if result.returncode != 0:
+            raise RuntimeError(f"ffmpeg failed: {result.stderr.decode()}")
+
+        raw = np.frombuffer(result.stdout, dtype=np.int16)
+        raw = raw.reshape((-1, channels))
+        data = raw.astype(np.float64) / 32768.0
+
+        return cls(data, sample_rate)
 
     
     def trim(self,start_sec,end_sec):
@@ -152,7 +194,7 @@ class AudioEditor:
 # fast.save("fast_test.wav")
 # slow = audio.change_speed(0.7)
 # slow.save("slow_test.wav")
-audio = AudioEditor.load("samples/input.wav")
+audio = AudioEditor.load("samples/input.mp3")
 trimmed = audio.trim_silence()
 print(audio.data.shape)
 print(trimmed.data.shape)

@@ -6,7 +6,7 @@ from effects import echo, smooth
 
 st.title("Audio Editor")
 
-uploaded_file = st.file_uploader("Upload a WAV file", type=["wav"])
+uploaded_file = st.file_uploader("Upload a WAV or MP3 file", type=["wav", "mp3"])
 
 if uploaded_file is not None:
     if "current_audio" not in st.session_state:
