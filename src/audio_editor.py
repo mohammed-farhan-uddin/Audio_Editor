@@ -1,16 +1,58 @@
+import subprocess
 import matplotlib.pyplot as plt
 import numpy as np
 from scipy.io import wavfile
+from pydub import AudioSegment
 
 class AudioEditor:
     def __init__(self,data,sample_rate):
         self.data=data
         self.sample_rate=sample_rate
     @classmethod
-    def load(cls,path):
-        sample_rate, data = wavfile.read(path)
-        data = data.astype(np.float64) / np.iinfo(data.dtype).max
-        return cls(data,sample_rate)
+    def load(cls, file, filename=None):
+        """
+        file: either a path string, or a file-like object (e.g. Streamlit's UploadedFile)
+        filename: needed if `file` is a file-like object without a .name attribute
+        """
+        # Figure out the extension
+        name = filename or getattr(file, "name", None) or (file if isinstance(file, str) else "")
+        is_wav = str(name).lower().endswith(".wav")
+
+        if is_wav:
+            sample_rate, data = wavfile.read(file)
+            data = data.astype(np.float64) / np.iinfo(data.dtype).max
+            return cls(data, sample_rate)
+        else:
+            return cls._load_via_ffmpeg(file)
+
+    @classmethod
+    def _load_via_ffmpeg(cls, file, sample_rate=44100, channels=2):
+        # Get raw bytes whether `file` is a path or a file-like object
+        if isinstance(file, str):
+            with open(file, "rb") as f:
+                input_bytes = f.read()
+        else:
+            file.seek(0)
+            input_bytes = file.read()
+
+        cmd = [
+            "ffmpeg", "-i", "pipe:0",
+            "-f", "s16le",
+            "-acodec", "pcm_s16le",
+            "-ar", str(sample_rate),
+            "-ac", str(channels),
+            "-loglevel", "error",
+            "pipe:1"
+        ]
+        result = subprocess.run(cmd, input=input_bytes, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        if result.returncode != 0:
+            raise RuntimeError(f"ffmpeg failed: {result.stderr.decode()}")
+
+        raw = np.frombuffer(result.stdout, dtype=np.int16)
+        raw = raw.reshape((-1, channels))
+        data = raw.astype(np.float64) / 32768.0
+
+        return cls(data, sample_rate)
 
     
     def trim(self,start_sec,end_sec):
@@ -46,10 +88,50 @@ class AudioEditor:
         data[-n:]=data[-n:] * ramp[:,None]
         return AudioEditor(data,self.sample_rate)
 
-    def save(self,path):
+    def save(self, path, format="wav"):
+    
+    #path: file path or file-like object (e.g. io.BytesIO for Streamlit)
+    #format: "wav" or "mp3"
+    
        clipped_data = np.clip(self.data, -1.0, 1.0)
-       int_data=(clipped_data * 32767).astype(np.int16)
-       wavfile.write(path, self.sample_rate, int_data)
+       int_data = (clipped_data * 32767).astype(np.int16)
+
+       if format == "wav":
+        wavfile.write(path, self.sample_rate, int_data)
+
+       elif format == "mp3":
+        self._save_as_mp3(int_data, path)
+
+       else:
+        raise ValueError(f"Unsupported format: {format}")
+
+    def _save_as_mp3(self, int_data, path):
+    # int_data shape: (n_samples, n_channels) or (n_samples,) if mono
+       channels = int_data.shape[1] if int_data.ndim > 1 else 1
+       raw_bytes = int_data.tobytes()
+
+       cmd = [
+        "ffmpeg", "-y",
+        "-f", "s16le",
+        "-ar", str(self.sample_rate),
+        "-ac", str(channels),
+        "-i", "pipe:0",
+        "-f", "mp3",
+        "-loglevel", "error",
+        "pipe:1"
+    ]
+       result = subprocess.run(cmd, input=raw_bytes, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+       if result.returncode != 0:
+        raise RuntimeError(f"ffmpeg failed: {result.stderr.decode()}")
+
+       mp3_bytes = result.stdout
+
+    # Write to a real path or a file-like object (e.g. io.BytesIO)
+       if isinstance(path, str):
+        with open(path, "wb") as f:
+            f.write(mp3_bytes)
+       else:
+        path.write(mp3_bytes)
 
     def to_mono(self):
       mono_data = self.data.mean(axis=1)
@@ -152,7 +234,7 @@ class AudioEditor:
 # fast.save("fast_test.wav")
 # slow = audio.change_speed(0.7)
 # slow.save("slow_test.wav")
-audio = AudioEditor.load("samples/input.wav")
+audio = AudioEditor.load("samples/input.mp3")
 trimmed = audio.trim_silence()
 reversed=audio.reverse()
 print(audio.data.shape)

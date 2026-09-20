@@ -6,7 +6,7 @@ from effects import echo, smooth
 
 st.title("Audio Editor")
 
-uploaded_file = st.file_uploader("Upload a WAV file", type=["wav"])
+uploaded_file = st.file_uploader("Upload a WAV or MP3 file", type=["wav", "mp3"])
 
 if uploaded_file is not None:
     if "current_audio" not in st.session_state:
@@ -23,9 +23,9 @@ if uploaded_file is not None:
 
 
 operations = st.multiselect("Choose operations (in order)", [
-    "Trim", "Reverse", "Scale", "Fade In", "Fade Out", 
+    "Trim", "Reverse", "Scale", "Fade In", "Fade Out",
     "Echo", "Smooth", "To Mono", "Normalize", "Change Speed", "Trim Silence"
-])  
+])
 
 params = {}   # প্রতিটা operation এর input জমা রাখার জন্য dictionary
 
@@ -71,6 +71,8 @@ for op in operations:
             "threshold": st.number_input("Silence threshold", min_value=0.0, value=0.01, key="silence_threshold")
         }
 
+output_format = st.selectbox("Output format", ["wav", "mp3"])
+
 if st.button("Apply"):
     result = audio
     for op in operations:
@@ -100,19 +102,29 @@ if st.button("Apply"):
     st.write("Result:")
     fig = result.plot_waveform()
     st.pyplot(fig)
+<<<<<<< HEAD
     
 
    
+=======
+>>>>>>> c51ce58ecfb64c06dcddc36636ec9d6d05842a9a
 
     buffer = io.BytesIO()
-    result.save(buffer)
+    result.save(buffer, format=output_format)
     buffer.seek(0)
-    st.audio(buffer, format="audio/wav")
-    st.download_button("Download result", buffer, file_name="edited_audio.wav", key="download_btn")
+
+    mime = "audio/mpeg" if output_format == "mp3" else "audio/wav"
+    st.audio(buffer, format=mime)
+
+    st.download_button(
+        "Download result",
+        buffer,
+        file_name=f"edited_audio.{output_format}",
+        mime=mime,
+        key="download_btn"
+    )
     st.session_state.current_audio = result
 
 if st.button("Reset"):
     st.session_state.current_audio = AudioEditor.load(uploaded_file)
     st.rerun()
-
-
