@@ -154,8 +154,13 @@ class AudioEditor:
 # slow.save("slow_test.wav")
 audio = AudioEditor.load("samples/input.wav")
 trimmed = audio.trim_silence()
+reversed=audio.reverse()
 print(audio.data.shape)
 print(trimmed.data.shape)
 trimmed.save("silence_trimmed_test.wav")
+print(reversed.data.shape)
+reversed.save("reversed_sound.wav")
+
+
 
 

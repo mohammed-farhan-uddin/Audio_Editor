@@ -16,6 +16,11 @@ if uploaded_file is not None:
     fig = audio.plot_waveform()
     st.pyplot(fig)
 
+    original_buffer = io.BytesIO()
+    audio.save(original_buffer)
+    original_buffer.seek(0)
+    st.audio(original_buffer, format="audio/wav")
+
 
 operations = st.multiselect("Choose operations (in order)", [
     "Trim", "Reverse", "Scale", "Fade In", "Fade Out", 
@@ -34,25 +39,70 @@ for op in operations:
         params["Scale"] = {
             "factor": st.number_input("Scale factor", min_value=0.0, value=1.0, key="scale_factor")
         }
-    # ... বাকি সব operation একই প্যাটার্নে
+    elif op == "Reverse":
+        pass
+    elif op == "Fade In":
+        params["Fade In"] = {
+            "duration": st.number_input("Fade In duration (seconds)", min_value=0.0, value=0.5, key="fadein_duration")
+        }
+    elif op == "Fade Out":
+        params["Fade Out"] = {
+            "duration": st.number_input("Fade Out duration (seconds)", min_value=0.0, value=0.5, key="fadeout_duration")
+        }
+    elif op == "Echo":
+        params["Echo"] = {
+            "delay": st.number_input("Delay (seconds)", min_value=0.0, value=0.3, key="echo_delay"),
+            "decay": st.number_input("Decay", min_value=0.0, max_value=1.0, value=0.5, key="echo_decay")
+        }
+    elif op == "Smooth":
+        params["Smooth"] = {
+            "kernel_size": st.number_input("Kernel size", min_value=1, value=21, step=1, key="smooth_kernel")
+        }
+    elif op == "To Mono":
+        pass
+    elif op == "Normalize":
+        pass
+    elif op == "Change Speed":
+        params["Change Speed"] = {
+            "speed_factor": st.number_input("Speed factor", min_value=0.1, value=1.0, key="speed_factor")
+        }
+    elif op == "Trim Silence":
+        params["Trim Silence"] = {
+            "threshold": st.number_input("Silence threshold", min_value=0.0, value=0.01, key="silence_threshold")
+        }
 
 if st.button("Apply"):
     result = audio
     for op in operations:
         if op == "Trim":
-            result = result.trim(params["Trim"]["start"], params["Trim"]["end"])
+             result = result.trim(params["Trim"]["start"], params["Trim"]["end"])
         elif op == "Scale":
             result = result.scale(params["Scale"]["factor"])
-        # ... বাকি সব operation একই প্যাটার্নে
+        elif op == "Reverse":
+            result = result.reverse()
+        elif op == "Fade In":
+            result = result.fade_in(params["Fade In"]["duration"])
+        elif op == "Fade Out":
+            result = result.fade_out(params["Fade Out"]["duration"])
+        elif op == "Echo":
+            result = echo(result, params["Echo"]["delay"], params["Echo"]["decay"])
+        elif op == "Smooth":
+            result = smooth(result, params["Smooth"]["kernel_size"])
+        elif op == "To Mono":
+            result = result.to_mono()
+        elif op == "Normalize":
+            result = result.normalize()
+        elif op == "Change Speed":
+            result = result.change_speed(params["Change Speed"]["speed_factor"])
+        elif op == "Trim Silence":
+            result = result.trim_silence(params["Trim Silence"]["threshold"])
 
     st.write("Result:")
     fig = result.plot_waveform()
     st.pyplot(fig)
     
 
-    st.write("Result:")
-    fig = result.plot_waveform()
-    st.pyplot(fig)
+   
 
     buffer = io.BytesIO()
     result.save(buffer)
