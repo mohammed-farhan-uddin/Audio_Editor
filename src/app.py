@@ -4,6 +4,7 @@ import io
 from audio_editor import AudioEditor
 from effects import echo, smooth
 from steganography import embed_message, extract_message
+from denoise import spectral_subtract_denoise
 
 st.title("Audio Editor")
 
@@ -166,7 +167,7 @@ if uploaded_file is not None:
         st.rerun()
 
     st.divider()
-    st.header("Audio Steganography (hide a message via FFT)")
+    st.header("Audio Steganography (hide a message)")
     st.caption("Embeds a text message into the FFT magnitude spectrum. Only survives lossless "
                "WAV — do not export the result as MP3 or the hidden message will be destroyed.")
 
@@ -211,3 +212,42 @@ if uploaded_file is not None:
             st.success(f"Decoded message: {decoded}")
         except Exception as e:
             st.error(f"Failed to extract message: {e}")
+
+    st.divider()
+    st.header("Spectral Noise Reduction (spectral subtraction)")
+    st.caption("Pick a time range in the waveform above that contains only background noise "
+               "(no speech/music) - that range is used to estimate the noise profile.")
+
+    duration = len(audio.data) / audio.sample_rate
+    noise_start = st.number_input("Noise sample start (seconds)", min_value=0.0,
+                                   max_value=max(0.0, duration), value=0.0, key="noise_start")
+    noise_end = st.number_input("Noise sample end (seconds)", min_value=0.0,
+                                 max_value=duration, value=min(0.5, duration), key="noise_end")
+    denoise_alpha = st.number_input("Over-subtraction factor (alpha)", min_value=0.1,
+                                     value=2.0, step=0.1, key="denoise_alpha")
+    denoise_beta = st.number_input("Spectral floor (beta)", min_value=0.0, max_value=1.0,
+                                    value=0.02, step=0.01, key="denoise_beta")
+
+    if st.button("Reduce Noise"):
+        if noise_end <= noise_start:
+            st.error("Noise sample end must be after noise sample start.")
+        else:
+            try:
+                denoised_audio = spectral_subtract_denoise(
+                    audio, noise_start, noise_end, alpha=denoise_alpha, beta=denoise_beta
+                )
+                st.success("Noise reduced.")
+                st.pyplot(denoised_audio.plot_waveform())
+                denoise_buffer = io.BytesIO()
+                denoised_audio.save(denoise_buffer, format="wav")
+                denoise_buffer.seek(0)
+                st.audio(denoise_buffer, format="audio/wav")
+                st.download_button(
+                    "Download denoised audio",
+                    denoise_buffer,
+                    file_name="denoised_audio.wav",
+                    mime="audio/wav",
+                    key="denoise_download_btn"
+                )
+            except ValueError as e:
+                st.error(str(e))
