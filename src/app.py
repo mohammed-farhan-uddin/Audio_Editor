@@ -125,6 +125,6 @@ if st.button("Apply"):
     )
     st.session_state.current_audio = result
 
-if st.button("Reset"):
-    st.session_state.current_audio = AudioEditor.load(uploaded_file)
-    st.rerun()
+    if st.button("Reset"):
+     st.session_state.current_audio = AudioEditor.load(uploaded_file)
+     st.rerun()
