@@ -3,6 +3,7 @@ import matplotlib.pyplot as plt
 import io
 from audio_editor import AudioEditor
 from effects import echo, smooth
+from steganography import embed_message, extract_message
 
 st.title("Audio Editor")
 
@@ -163,3 +164,50 @@ if uploaded_file is not None:
     if st.button("Reset"):
         st.session_state.current_audio = AudioEditor.load(uploaded_file)
         st.rerun()
+
+    st.divider()
+    st.header("Audio Steganography (hide a message via FFT)")
+    st.caption("Embeds a text message into the FFT magnitude spectrum. Only survives lossless "
+               "WAV — do not export the result as MP3 or the hidden message will be destroyed.")
+
+    st.subheader("Embed a message")
+    stego_message = st.text_area("Message to hide", key="stego_message")
+    stego_low = st.number_input("Low frequency bound (Hz)", min_value=1.0, value=500.0, key="stego_low")
+    stego_high = st.number_input("High frequency bound (Hz)", min_value=1.0, value=10000.0, key="stego_high")
+    stego_step = st.number_input("Quantization step size", min_value=1.0, value=50.0, key="stego_step")
+
+    if st.button("Embed Message"):
+        if not stego_message:
+            st.error("Enter a message to hide first.")
+        else:
+            try:
+                stego_audio = embed_message(audio, stego_message, stego_low, stego_high, stego_step)
+                st.success("Message embedded.")
+                stego_buffer = io.BytesIO()
+                stego_audio.save(stego_buffer, format="wav")
+                stego_buffer.seek(0)
+                st.audio(stego_buffer, format="audio/wav")
+                st.download_button(
+                    "Download stego audio (WAV only)",
+                    stego_buffer,
+                    file_name="stego_audio.wav",
+                    mime="audio/wav",
+                    key="stego_download_btn"
+                )
+            except ValueError as e:
+                st.error(str(e))
+
+    st.subheader("Extract a hidden message")
+    st.caption("Use the same frequency bounds and step size that were used to embed the message.")
+    stego_upload = st.file_uploader("Upload stego WAV file to decode", type=["wav"], key="stego_upload")
+    extract_low = st.number_input("Low frequency bound (Hz)", min_value=1.0, value=500.0, key="extract_low")
+    extract_high = st.number_input("High frequency bound (Hz)", min_value=1.0, value=10000.0, key="extract_high")
+    extract_step = st.number_input("Quantization step size", min_value=1.0, value=50.0, key="extract_step")
+
+    if stego_upload is not None and st.button("Extract Message"):
+        try:
+            stego_audio_loaded = AudioEditor.load(stego_upload)
+            decoded = extract_message(stego_audio_loaded, extract_low, extract_high, extract_step)
+            st.success(f"Decoded message: {decoded}")
+        except Exception as e:
+            st.error(f"Failed to extract message: {e}")
