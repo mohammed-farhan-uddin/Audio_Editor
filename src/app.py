@@ -28,7 +28,8 @@ if uploaded_file is not None:
     operations = st.multiselect("Choose operations (in order)", [
         "Trim", "Reverse", "Scale", "Fade In", "Fade Out",
         "Echo", "Smooth", "To Mono", "Normalize", "Change Speed", "Trim Silence",
-        "Low-Pass Filter", "High-Pass Filter"
+        "Low-Pass Filter", "High-Pass Filter",
+        "Butterworth Low-Pass", "Butterworth High-Pass"
     ])
 
     params = {}
@@ -82,6 +83,16 @@ if uploaded_file is not None:
             params["High-Pass Filter"] = {
                 "cutoff": st.number_input("Cutoff frequency (Hz) - keep above this", min_value=1.0, value=1000.0, key="highpass_cutoff")
             }
+        elif op == "Butterworth Low-Pass":
+            params["Butterworth Low-Pass"] = {
+                "cutoff": st.number_input("Cutoff frequency (Hz)", min_value=1.0, value=1000.0, key="butter_lp_cutoff"),
+                "order": st.number_input("Filter order", min_value=1, max_value=10, value=4, step=1, key="butter_lp_order")
+            }
+        elif op == "Butterworth High-Pass":
+            params["Butterworth High-Pass"] = {
+                "cutoff": st.number_input("Cutoff frequency (Hz)", min_value=1.0, value=1000.0, key="butter_hp_cutoff"),
+                "order": st.number_input("Filter order", min_value=1, max_value=10, value=4, step=1, key="butter_hp_order")
+            }
 
     output_format = st.selectbox("Output format", ["wav", "mp3"])
 
@@ -114,6 +125,16 @@ if uploaded_file is not None:
                 result = result.lowpass_filter(params["Low-Pass Filter"]["cutoff"])
             elif op == "High-Pass Filter":
                 result = result.highpass_filter(params["High-Pass Filter"]["cutoff"])
+            elif op == "Butterworth Low-Pass":
+                result = result.butterworth_lowpass(
+                    params["Butterworth Low-Pass"]["cutoff"],
+                    int(params["Butterworth Low-Pass"]["order"])
+                )
+            elif op == "Butterworth High-Pass":
+                result = result.butterworth_highpass(
+                    params["Butterworth High-Pass"]["cutoff"],
+                    int(params["Butterworth High-Pass"]["order"])
+                )
 
         st.write("Result:")
         fig = result.plot_waveform()

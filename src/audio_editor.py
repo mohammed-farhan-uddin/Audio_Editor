@@ -2,6 +2,7 @@ import subprocess
 import matplotlib.pyplot as plt
 import numpy as np
 from scipy.io import wavfile
+from butterworth import design_butterworth, apply_iir_filter
 
 
 class AudioEditor:
@@ -218,4 +219,21 @@ class AudioEditor:
         spectrum = np.fft.rfft(self.data)
         spectrum[freqs < cutoff_freq] = 0
         filtered = np.fft.irfft(spectrum, n=n)
+        return AudioEditor(filtered, self.sample_rate)
+
+    # ------------------------------------------------------------------
+    # Butterworth filters (Laplace-domain design -> bilinear transform
+    # -> IIR difference equation). See butterworth.py. Unlike
+    # lowpass_filter/highpass_filter above (hard FFT bin zeroing), these
+    # are true analog-derived filters with a smooth, maximally-flat
+    # roll-off controlled by `order`.
+    # ------------------------------------------------------------------
+    def butterworth_lowpass(self, cutoff_freq, order=4):
+        b, a = design_butterworth(order, cutoff_freq, self.sample_rate, btype="low")
+        filtered = apply_iir_filter(self.data, b, a)
+        return AudioEditor(filtered, self.sample_rate)
+
+    def butterworth_highpass(self, cutoff_freq, order=4):
+        b, a = design_butterworth(order, cutoff_freq, self.sample_rate, btype="high")
+        filtered = apply_iir_filter(self.data, b, a)
         return AudioEditor(filtered, self.sample_rate)
