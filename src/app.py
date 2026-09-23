@@ -3,7 +3,6 @@ import matplotlib.pyplot as plt
 import io
 from audio_editor import AudioEditor
 from effects import echo, smooth
-from steganography import embed_message, extract_message
 from denoise import spectral_subtract_denoise
 
 st.title("Audio Editor")
@@ -31,7 +30,8 @@ if uploaded_file is not None:
         "Trim", "Reverse", "Scale", "Fade In", "Fade Out",
         "Echo", "Smooth", "To Mono", "Normalize", "Change Speed", "Trim Silence",
         "Low-Pass Filter", "High-Pass Filter",
-        "Butterworth Low-Pass", "Butterworth High-Pass"
+        "Butterworth Low-Pass", "Butterworth High-Pass",
+        "Spectral Noise Reduction"
     ])
 
     params = {}
@@ -95,6 +95,20 @@ if uploaded_file is not None:
                 "cutoff": st.number_input("Cutoff frequency (Hz)", min_value=1.0, value=1000.0, key="butter_hp_cutoff"),
                 "order": st.number_input("Filter order", min_value=1, max_value=10, value=4, step=1, key="butter_hp_order")
             }
+        elif op == "Spectral Noise Reduction":
+            duration = len(audio.data) / audio.sample_rate
+            st.caption("Pick a time range (relative to the audio at this point in the chain) "
+                       "that contains only background noise - no speech/music.")
+            params["Spectral Noise Reduction"] = {
+                "noise_start": st.number_input("Noise sample start (seconds)", min_value=0.0,
+                                                max_value=max(0.0, duration), value=0.0, key="noise_start"),
+                "noise_end": st.number_input("Noise sample end (seconds)", min_value=0.0,
+                                              max_value=duration, value=min(0.5, duration), key="noise_end"),
+                "alpha": st.number_input("Over-subtraction factor (alpha)", min_value=0.1,
+                                          value=2.0, step=0.1, key="denoise_alpha"),
+                "beta": st.number_input("Spectral floor (beta)", min_value=0.0, max_value=1.0,
+                                         value=0.02, step=0.01, key="denoise_beta")
+            }
 
     output_format = st.selectbox("Output format", ["wav", "mp3"])
 
@@ -137,6 +151,15 @@ if uploaded_file is not None:
                     params["Butterworth High-Pass"]["cutoff"],
                     int(params["Butterworth High-Pass"]["order"])
                 )
+            elif op == "Spectral Noise Reduction":
+                p = params["Spectral Noise Reduction"]
+                if p["noise_end"] <= p["noise_start"]:
+                    st.error("Noise sample end must be after noise sample start.")
+                else:
+                    result = spectral_subtract_denoise(
+                        result, p["noise_start"], p["noise_end"],
+                        alpha=p["alpha"], beta=p["beta"]
+                    )
 
         st.write("Result:")
         fig = result.plot_waveform()
@@ -165,89 +188,3 @@ if uploaded_file is not None:
     if st.button("Reset"):
         st.session_state.current_audio = AudioEditor.load(uploaded_file)
         st.rerun()
-
-    st.divider()
-    st.header("Audio Steganography (hide a message)")
-    st.caption("Embeds a text message into the FFT magnitude spectrum. Only survives lossless "
-               "WAV — do not export the result as MP3 or the hidden message will be destroyed.")
-
-    st.subheader("Embed a message")
-    stego_message = st.text_area("Message to hide", key="stego_message")
-    stego_low = st.number_input("Low frequency bound (Hz)", min_value=1.0, value=500.0, key="stego_low")
-    stego_high = st.number_input("High frequency bound (Hz)", min_value=1.0, value=10000.0, key="stego_high")
-    stego_step = st.number_input("Quantization step size", min_value=1.0, value=50.0, key="stego_step")
-
-    if st.button("Embed Message"):
-        if not stego_message:
-            st.error("Enter a message to hide first.")
-        else:
-            try:
-                stego_audio = embed_message(audio, stego_message, stego_low, stego_high, stego_step)
-                st.success("Message embedded.")
-                stego_buffer = io.BytesIO()
-                stego_audio.save(stego_buffer, format="wav")
-                stego_buffer.seek(0)
-                st.audio(stego_buffer, format="audio/wav")
-                st.download_button(
-                    "Download stego audio (WAV only)",
-                    stego_buffer,
-                    file_name="stego_audio.wav",
-                    mime="audio/wav",
-                    key="stego_download_btn"
-                )
-            except ValueError as e:
-                st.error(str(e))
-
-    st.subheader("Extract a hidden message")
-    st.caption("Use the same frequency bounds and step size that were used to embed the message.")
-    stego_upload = st.file_uploader("Upload stego WAV file to decode", type=["wav"], key="stego_upload")
-    extract_low = st.number_input("Low frequency bound (Hz)", min_value=1.0, value=500.0, key="extract_low")
-    extract_high = st.number_input("High frequency bound (Hz)", min_value=1.0, value=10000.0, key="extract_high")
-    extract_step = st.number_input("Quantization step size", min_value=1.0, value=50.0, key="extract_step")
-
-    if stego_upload is not None and st.button("Extract Message"):
-        try:
-            stego_audio_loaded = AudioEditor.load(stego_upload)
-            decoded = extract_message(stego_audio_loaded, extract_low, extract_high, extract_step)
-            st.success(f"Decoded message: {decoded}")
-        except Exception as e:
-            st.error(f"Failed to extract message: {e}")
-
-    st.divider()
-    st.header("Spectral Noise Reduction (spectral subtraction)")
-    st.caption("Pick a time range in the waveform above that contains only background noise "
-               "(no speech/music) - that range is used to estimate the noise profile.")
-
-    duration = len(audio.data) / audio.sample_rate
-    noise_start = st.number_input("Noise sample start (seconds)", min_value=0.0,
-                                   max_value=max(0.0, duration), value=0.0, key="noise_start")
-    noise_end = st.number_input("Noise sample end (seconds)", min_value=0.0,
-                                 max_value=duration, value=min(0.5, duration), key="noise_end")
-    denoise_alpha = st.number_input("Over-subtraction factor (alpha)", min_value=0.1,
-                                     value=2.0, step=0.1, key="denoise_alpha")
-    denoise_beta = st.number_input("Spectral floor (beta)", min_value=0.0, max_value=1.0,
-                                    value=0.02, step=0.01, key="denoise_beta")
-
-    if st.button("Reduce Noise"):
-        if noise_end <= noise_start:
-            st.error("Noise sample end must be after noise sample start.")
-        else:
-            try:
-                denoised_audio = spectral_subtract_denoise(
-                    audio, noise_start, noise_end, alpha=denoise_alpha, beta=denoise_beta
-                )
-                st.success("Noise reduced.")
-                st.pyplot(denoised_audio.plot_waveform())
-                denoise_buffer = io.BytesIO()
-                denoised_audio.save(denoise_buffer, format="wav")
-                denoise_buffer.seek(0)
-                st.audio(denoise_buffer, format="audio/wav")
-                st.download_button(
-                    "Download denoised audio",
-                    denoise_buffer,
-                    file_name="denoised_audio.wav",
-                    mime="audio/wav",
-                    key="denoise_download_btn"
-                )
-            except ValueError as e:
-                st.error(str(e))
