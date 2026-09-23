@@ -37,7 +37,7 @@ extract_message = steganography_module.extract_message
 import streamlit as st
 import io
 
-st.title("Audio Steganography (hide a message via FFT)")
+st.title("Audio Steganography (hide a message )")
 st.caption("Embeds a text message into the FFT magnitude spectrum. Only survives lossless "
            "WAV - do not export the result as MP3 or the hidden message will be destroyed.")
 
