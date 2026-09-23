@@ -102,12 +102,9 @@ if st.button("Apply"):
     st.write("Result:")
     fig = result.plot_waveform()
     st.pyplot(fig)
-<<<<<<< HEAD
     
 
    
-=======
->>>>>>> c51ce58ecfb64c06dcddc36636ec9d6d05842a9a
 
     buffer = io.BytesIO()
     result.save(buffer, format=output_format)
