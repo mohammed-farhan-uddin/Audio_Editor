@@ -16,6 +16,10 @@ if uploaded_file is not None:
     fig = audio.plot_waveform()
     st.pyplot(fig)
 
+    if st.checkbox("Show frequency spectrum (FFT)", key="show_spectrum_original"):
+        spec_fig = audio.plot_spectrum()
+        st.pyplot(spec_fig)
+
     original_buffer = io.BytesIO()
     audio.save(original_buffer)
     original_buffer.seek(0)
@@ -23,7 +27,8 @@ if uploaded_file is not None:
 
     operations = st.multiselect("Choose operations (in order)", [
         "Trim", "Reverse", "Scale", "Fade In", "Fade Out",
-        "Echo", "Smooth", "To Mono", "Normalize", "Change Speed", "Trim Silence"
+        "Echo", "Smooth", "To Mono", "Normalize", "Change Speed", "Trim Silence",
+        "Low-Pass Filter", "High-Pass Filter"
     ])
 
     params = {}
@@ -69,6 +74,14 @@ if uploaded_file is not None:
             params["Trim Silence"] = {
                 "threshold": st.number_input("Silence threshold", min_value=0.0, value=0.01, key="silence_threshold")
             }
+        elif op == "Low-Pass Filter":
+            params["Low-Pass Filter"] = {
+                "cutoff": st.number_input("Cutoff frequency (Hz) - keep below this", min_value=1.0, value=1000.0, key="lowpass_cutoff")
+            }
+        elif op == "High-Pass Filter":
+            params["High-Pass Filter"] = {
+                "cutoff": st.number_input("Cutoff frequency (Hz) - keep above this", min_value=1.0, value=1000.0, key="highpass_cutoff")
+            }
 
     output_format = st.selectbox("Output format", ["wav", "mp3"])
 
@@ -97,10 +110,18 @@ if uploaded_file is not None:
                 result = result.change_speed(params["Change Speed"]["speed_factor"])
             elif op == "Trim Silence":
                 result = result.trim_silence(params["Trim Silence"]["threshold"])
+            elif op == "Low-Pass Filter":
+                result = result.lowpass_filter(params["Low-Pass Filter"]["cutoff"])
+            elif op == "High-Pass Filter":
+                result = result.highpass_filter(params["High-Pass Filter"]["cutoff"])
 
         st.write("Result:")
         fig = result.plot_waveform()
         st.pyplot(fig)
+
+        if st.checkbox("Show frequency spectrum of result (FFT)", key="show_spectrum_result"):
+            spec_fig = result.plot_spectrum()
+            st.pyplot(spec_fig)
 
         buffer = io.BytesIO()
         result.save(buffer, format=output_format)

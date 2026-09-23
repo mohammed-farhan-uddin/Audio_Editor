@@ -182,3 +182,40 @@ class AudioEditor:
         ax.set_ylabel("Amplitude")
         ax.set_title("Waveform")
         return fig
+
+    # ------------------------------------------------------------------
+    # DFT / FFT based features
+    # ------------------------------------------------------------------
+    def plot_spectrum(self, max_freq=5000):
+        """Frequency-domain view using FFT (np.fft.rfft).
+        max_freq limits the x-axis so low-frequency detail isn't
+        squeezed into a corner of the plot."""
+        n = len(self.data)
+        freqs = np.fft.rfftfreq(n, d=1 / self.sample_rate)
+        magnitude = np.abs(np.fft.rfft(self.data))
+
+        fig, ax = plt.subplots()
+        ax.plot(freqs, magnitude)
+        ax.set_xlim(0, max_freq)
+        ax.set_xlabel("Frequency (Hz)")
+        ax.set_ylabel("Magnitude")
+        ax.set_title("Frequency Spectrum (FFT)")
+        return fig
+
+    def lowpass_filter(self, cutoff_freq):
+        """Remove frequencies above cutoff_freq using FFT (frequency-domain filtering)."""
+        n = len(self.data)
+        freqs = np.fft.rfftfreq(n, d=1 / self.sample_rate)
+        spectrum = np.fft.rfft(self.data)
+        spectrum[freqs > cutoff_freq] = 0
+        filtered = np.fft.irfft(spectrum, n=n)
+        return AudioEditor(filtered, self.sample_rate)
+
+    def highpass_filter(self, cutoff_freq):
+        """Remove frequencies below cutoff_freq using FFT (frequency-domain filtering)."""
+        n = len(self.data)
+        freqs = np.fft.rfftfreq(n, d=1 / self.sample_rate)
+        spectrum = np.fft.rfft(self.data)
+        spectrum[freqs < cutoff_freq] = 0
+        filtered = np.fft.irfft(spectrum, n=n)
+        return AudioEditor(filtered, self.sample_rate)
